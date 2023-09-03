@@ -1,235 +1,332 @@
 <script>
-	//Some components
-	import Line from './components/charts/Line.svelte'
-	import Area from './components/charts/Area.svelte'
-	import Bars from './components/charts/Bars.svelte'
-	import Multiline from './components/charts/Multiline.svelte'
-	import Scatter from './components/charts/Scatter.svelte'
-	import ScatterCanvas from './components/charts/ScatterCanvas.svelte'
-	import Mapbox from './components/maps/Mapbox.svelte'
-	import Map from './components/maps/Map.svelte'
-	import Scroller from '@sveltejs/svelte-scroller'
-  	import Sankey from './components/charts/Sankey.svelte'
+  import Scroller from "@sveltejs/svelte-scroller";
 
-	//Test data
-	import world from './data/world.json';
-	import cases from './data/covid-cases.json';
-	import weather from './data/weather.json';
-	import weather2 from './data/weather2.json';
-	import weather3 from './data/weather3.json';
-	import sankeydata from './data/sankey-data.js';
+  let color = "#5cc6b2";
 
-	import locale from '@reuters-graphics/d3-locale';
-	import { geoWinkel3 } from 'd3-geo-projection';
-	import { scaleQuantize } from 'd3-scale';
-	import {extent} from 'd3-array';
-	
-	let color = '#5cc6b2';
+  // FOR SCROLLER COMPONENT
 
-	let index = 0, offset, progress;
-
-	let scatterStep, otherStep;
-
-	const loc = new locale('es');
-	const format = {
-		x: loc.formatTime('%b %e'),
-        y: loc.format(',.1d'),
-    }
-
-	weather.forEach(d => d.time = new Date(d.time));
-	weather2.forEach(d => d.time = new Date(d.time));
-
-	const projection = geoWinkel3()
-				.rotate([-11, 0])
-				.precision(1);
-
-	console.log(cases)
-
-	const palette = () => {
-		const _extent = extent(cases.data, d => d.latest.cases)
-		const max = _extent[0] > _extent[1] ? _extent[0] : _extent[1];
-		const min = _extent[0] < _extent[1] ? _extent[0] : _extent[1];
-		const d = (max-min)/9;
-
-		return scaleQuantize()
-				.range(['#ffe461', '#ffc755', '#fea94d', '#f68c4a', '#ea704a', '#da554e', '#c73a55', '#ae1f5f', '#90006c'])
-				.domain([... Array(9)].map((_d, i) => min + d * i))
-				.nice();
-	}
-
-	const steps = [
-		{center: [-7.889722,42.782222], zoom:7.5},
-		{center: [0,42.782222], zoom:7},
-		{center: [-7.889722,41.782222], zoom:6.5}
-	]
-
-	const points = [...new Array(2500)]
-        .map(d => (
-            {
-				coords: [
-					{ x: Math.random() * 400,
-					y: Math.random() * 400,
-					width: Math.random() * 16,
-					height: Math.random() * 16 },
-					{ x: Math.random() * 400,
-					y: Math.random() * 400,
-					width: Math.random() * 16,
-					height: Math.random() * 16 }
-				]
-        }))
-
-	const otherPoints = [...new Array(800)]
-        .map(d => (
-            {
-				coords: [
-					{ x: Math.random() * 400,
-					y: Math.random() * 400,
-					r: Math.random() * 16 },
-					{ x: Math.random() * 400,
-					y: Math.random() * 400,
-					r: Math.random() * 16 }
-				]
-        }))
-
-	
+  let count;
+  let index;
+  let offset;
+  let progress;
+  let top;
+  let threshold = 1.5;
+//   let threshold = 0.9;
+  let bottom = 0.9;
 </script>
 
-<main>
-
-	<Multiline 
-		data={weather2}
-		title='Title' desc='Description'
-		key={{x: 'time', y: ['ny1', 'sf1', 'au1']}}
-		{format}
-		color={['#fc0', '#036', '#f0c']}
-		layout='col'
-	/>
-
-	<Line 
-		data={weather}
-		title='Title' desc='Description'
-		key={{x: 'time', y: 'value'}}
-		{format}
-		{color}
-		layout='col'
-	/>
-
-	<Sankey
-		data={sankeydata}
-		colorNodes={d => '#00bbff'}
-		colorLinks={d => '#00bbff35'}
-		layout='col'
-	/>
-
-	<Area 
-		data={weather}
-		title='Title' desc='Description'
-		key={{x: 'time', y: 'value'}}
-		{format}
-		{color}
-		layout='col'
-	/>
-
-	<div class='col'>
-		<p>This is an example of how you can do smooth transitions. It uses canvas so you can do a few thousand elements. Instead of the buttons triggering which step is in view, you can use the scroll ...  </p>
-		<button on:click={() => scatterStep = 0}>Arrange like so</button>
-		<button on:click={() => scatterStep = 1}>Rearrange again</button>
-	</div>
-	<ScatterCanvas
-		data={points}
-		layout='wide'
-		step={scatterStep}
-		mark='square'
-	/>
-
-	<div class='col'>
-		<p>This is an example of how you can do smooth transitions. It uses canvas so you can do a few thousand elements. Instead of the buttons triggering which step is in view, you can use the scroll ...  </p>
-		<button on:click={() => otherStep = 0}>Arrange like so</button>
-		<button on:click={() => otherStep = 1}>Rearrange again</button>
-	</div>
-	<ScatterCanvas
-		data={otherPoints}
-		layout='wide'
-		step={otherStep}
-		mark='circle'
-	/>
-
-	<Bars 
-		data={weather}
-		title='Title' desc='Description'
-		key={{x: 'time', y: 'value'}}
-		{color}
-		layout='col'
-	/>
-
-	<Scatter 
-		data={weather3}
-		title='Title' desc='Description'
-		key={{x: 'pressure', y: 'temperatureHigh', size:'moonPhase'}}
-		{format}
-		{color}
-		layout='col'
-	/>
-	
-	<!-- <Scroller top={0} bottom={1} bind:index bind:offset bind:progress>
-	<div slot="background">
-		<Mapbox 
-			options={
-				{style:'mapbox://styles/fndvit/ckc1oqzq94nh91imn76jqxcha',
-				scrollZoom:false,
-				center: [-7.889722,42.782222],
-				zoom: 6.5}
-			}
-			steps={steps}
-			index={index}
-			accessToken='pk.eyJ1IjoiZm5kdml0IiwiYSI6ImNrYzBzYjhkMDBicG4yc2xrbnMzNXVoeDIifQ.mrdvw_7AIeOwa5IgHLaHJg'
-			layout='fs'
+<main class="body">
+  <Scroller
+    {top}
+    {bottom}
+    {threshold}
+    splitscreen={true}
+    bind:index
+    bind:offset
+    bind:progress
+    bind:count
+  >
+    <div slot="background">
+      {#if index === 1}
+        <div />
+      {/if}
+      {#if index === 2}
+	  <div class="container">
+        <img
+          src="./img/map.png"
+          alt=""
+          class="image"
+        />
+	  </div>
+      {/if}
+      {#if index === 3}
+        <div class="container">
+          <img
+            src="./img/miles-driven.png"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 4}
+        <div class="container">
+          <video
+            controls
+            autoplay
+			class="video"
+          >
+            <source src="./img/wine-tastings.mp4" type="video/mp4" />
+          </video>
+        </div>
+      {/if}
+      {#if index === 5}
+        <div class="container">
+          <img
+            src="./img/pies.png"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 6}
+        <div class="container">
+          <img
+            src="./img/ham-and-cheese.jpg"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 7}
+        <div class="container">
+			<video
+            controls
+            autoplay
+			class="video"
+          >
+            <source src="./img/meltdowns.mp4" type="video/mp4" />
+          </video>
+        </div>
+      {/if}
+      {#if index === 8}
+        <div class="container">
+          <img
+            src="./img/spin.png"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 9}
+        <div class="container">
+          <img
+            src="./img/david-test.jpg"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 10}
+        <div class="container">
+			<video
+            controls
+            autoplay
+			class="video"
+          >
+            <source src="./img/cows.mp4" type="video/mp4" />
+          </video>
+        </div>
+      {/if}
+      {#if index === 11}
+        <div class="container">
+          <img
+            src="./img/meals.png"
+            alt=""
+			class="image"
+          />
+        </div>
+      {/if}
+      {#if index === 12}
+        <div class="container">
+          <video
+            controls
+            autoplay
+			class="video"
+          >
+            <source src="./img/avocado.mp4" type="video/mp4" />
+          </video>
+        </div>
+      {/if}
+	  {#if index === 13}
+	  <div class="container">
+		<img
+		  src="./img/tas.png"
+		  alt=""
+		  class="image"
 		/>
+	  </div>
+	{/if}
+	{#if index === 14}
+	<div class="container">
+	  <img
+		src="./img/melb.png"
+		alt=""
+		class="image"
+	  />
 	</div>
-	<div slot="foreground">
-		<section><p class='col'>This is the first section.</p></section>
-		<section><p class='col'>This is the second section.</p></section>
-		<section><p class='col'>This is the third section.</p></section>
-	</div>
-	</Scroller> -->
+  {/if}
+    </div>
 
-	<Map 
-		data={cases.data}
-		map={world}
-		geo='countries'
-		scale={palette()}
-		projection={projection}
-    	join={{data:'geoid', map:'alpha3'}}
-    	value='latest.cases'
-    	legend={{title: '', format: ''}}
-		layout='wide'
-	/>
-	
+    <div slot="foreground">
+      <section>
+        <div class="text">
+          <p>
+            London but now <b>Aussie 2023</b> 🇦🇺,<br>
+			<i>in numbers (and maps)</i><br>
+			<br>
+            Scroll to continue
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>Cities: 4</p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Distance driven: 3120.7km<br />
+            (It's also 16.2 times the coast of 🇸🇬)
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p><b>Wine tastings: 🍷🍷🍷 </b><br>
+			<br>
+			• Cabbage hill: the one I want to get married in<br>
+			• Tamar Valley: where you almost sold the dude Hougang<br>
+			• Innocent Bystander: where we went home with 6 bottles and ate paella<br>
+		</p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            <b>Pies 🥧</b><br />
+            Total pies: 27<br />
+            Shared pies: 7<br />
+            Char: 11 whole pies<br />
+            Freda: 9 whole pies
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>Ham & cheese croissants: I FORGOT SIS, but MANY.</p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>Mental breakdowns: 404 ERROR</p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            AMAZING spin classes: 9<br />
+            Bad spin classes: 1
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Crushes: 2<br />
+            Funerals held: 1
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Cows we saw: Infinity<br />
+            Cows we ate: ~15<br />
+            Cows that died for no reason: 1
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>Hearty meals with godma: 4</p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Avocadoes: 5kg?<br />
+            Avocado smash: 5kg?
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Disclaimer: All numbers here are not fact-checked, but happy birthday froggiefoo!<br>
+            Thanks for being the best travel buddy!
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="text">
+          <p>
+            Cheers to more days of <b>thriving 🌱</b>
+          </p>
+        </div>
+      </section>
+	  <section>
+      </section>
+    </div>
+  </Scroller>
 </main>
 
 <style>
-	main {
-		padding: 1em;
-		margin: 0 auto;
-	}
+  main {
+    padding: 1em;
+    margin: 0 auto;
+	font-family: Georgia, serif;
+  }
 
-	:global(.graphic) {
-		height:50vh;
-		margin-bottom:3rem;
-	}
-	
-	[slot="foreground"] {
-		pointer-events: none;
-	}
-	
-	[slot="foreground"] section {
-		pointer-events: all;
-	}
-	
-	section {
-		height: 80vh;
-		padding: 1em;
-		margin: 0 0 2em 0;
-	}
+  [slot="foreground"] {
+    pointer-events: none;
+  }
+
+  [slot="foreground"] section {
+    pointer-events: all;
+  }
+
+  section {
+    height: 90vh;
+    padding: 1em;
+    margin: 0 0 2em 0;
+	display: flex;
+  	align-items: center;
+ 	justify-content: center;
+  }
+
+  .text {
+    background-color: #edede9e1;
+    /* top | right | bottom | left */
+    padding: 10px 20px 10px 20px;
+    border: solid #c2a19d;
+	width: 400px;
+    margin: auto;
+    color: #c2a19d;
+  }
+
+  .body {
+    background-color: #edede9;
+  }
+
+  .video{
+	display: block; 
+	margin-left: auto; 
+	margin-right: auto;
+	width: 400px;
+  }
+
+  .image{
+   width: 400px;
+   /* opacity: 1; /* Set initial opacity to fully visible */
+   /* transition: opacity 10s ease-in; */
+  	}
+
+  .container {
+	display: flex;
+  	align-items: center;
+ 	justify-content: center;
+ 	height: 100vh;
+  }
 
 </style>
